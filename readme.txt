@@ -17,6 +17,10 @@ FX3 UVC KIT FIRMWARE
     the EZ-USB FX3 device and an Image Sensor that supports YUY2 image streaming
     over a parallel synchronous interface.
 
+    Supported sensors:
+        - EV76C541 (Python 480) — default
+        - Lynred ATTO640D-04 thermal sensor — selectable via compile-time define
+
     This Eclipse project contains the firmware application code that implements
     the Image Sensor interface and the USB Video Class (UVC) control and streaming
     logic. This firmware application supports streaming video in the following
@@ -156,5 +160,112 @@ FX3 UVC KIT FIRMWARE
           c. Device summary
           d. UVC Descriptor
           e. UVC functionality
+
+    8. Lynred ATTO640D-04 Thermal Sensor Support:
+    -----------------------------------------------
+
+    8.1 Overview:
+
+        The firmware supports the Lynred ATTO640D-04 640x480 thermal sensor as an
+        alternative to the default EV76C541 (Python 480) CMOS sensor. The ATTO640D-04
+        outputs 14-bit monochrome pixels via a parallel digital interface.
+
+        Sensor specifications:
+          - Resolution: 640x480
+          - Output: 14-bit parallel digital on bus B13..B0
+          - Sync signals: PSYNC (pixel clock), HSYNC (line valid), VSYNC (frame valid)
+          - Pixel sampling: on PSYNC rising edge when HSYNC=1 and VSYNC=1
+          - Control bus: I2C (16-bit register address, 8-bit register value)
+          - Digital supply: DVDD ~1.8V
+          - Analog supply: AVDD ~3.75V
+          - Max framerate: 60 fps full frame
+
+    8.2 Building with ATTO640D-04 Support:
+
+        To select the ATTO640D-04 sensor, do one of the following:
+          a. Uncomment the "#define SENSOR_ATTO640D04" line in sensor.h
+          b. Add -DSENSOR_ATTO640D04 to CFLAGS in the makefile
+
+        When SENSOR_ATTO640D04 is defined, the firmware will:
+          - Use the ATTO640D-04 driver (atto640d04.c/h) instead of Python 480
+          - Configure 640x480 @ 60fps full-frame mode
+          - Pack 14-bit thermal pixels into YUY2 for UVC transport
+
+    8.3 Files:
+
+          - atto640d04.h    : Register definitions, constants, and API declarations
+          - atto640d04.c    : Driver implementation (I2C helpers, startup, config APIs)
+          - sensor.h        : Updated with compile-time sensor selection mechanism
+          - sensor.c        : Updated with ATTO640D-04 wrapper functions
+
+    8.4 Mandatory Digital Startup Sequence:
+
+        WARNING: Failure to follow the startup sequence can affect sensor reliability.
+
+        The bring-up flow must be followed in this exact order:
+          1.  Assert NRST low (sensor in reset)
+          2.  Enable AVDD (~3.75V analog supply)
+          3.  Wait for AVDD rails to stabilize
+          4.  Enable DVDD (~1.8V digital supply)
+          5.  Wait for DVDD rails to stabilize
+          6.  Start master clock (MC)
+          7.  Release NRST (set high)
+          8.  Wait >= 1.6 ms for internal initialization
+          9.  Verify I2C communication by reading integrity registers
+          10. Enable I2C diffusion
+          11. Initialize/configure ADC-related registers
+          12. Perform ADC calibration (2 cycles)
+          13. Finalize digital mode and frame sync mode
+
+        For shutdown, stop the sequencer before removing power.
+
+    8.5 Register Map Summary (subset used by driver):
+
+        Address   Name               Bits  Description
+        -------   ----               ----  -----------
+        0x0040    GAIN_IMAGE         RW    [7] TRIGGER_1, [6] FLIP_H, [5] FLIP_V,
+                                           [4:0] gain value
+        0x0041    DIGITAL_OUTPUT     RW    [7] ADC_CALIB_ON, [6] ADC_EN,
+                                           [5] TRIGGER_2
+        0x0043    WIN_XSTART_H       RW    Window X start, high byte
+        0x0044    WIN_XSTART_L       RW    Window X start, low byte
+        0x0045    WIN_YSTART_H       RW    Window Y start, high byte
+        0x0046    WIN_YSTART_L       RW    Window Y start, low byte
+        0x0047    WIN_XSIZE_H        RW    Window X size, high byte
+        0x0048    WIN_XSIZE_L        RW    Window X size, low byte
+        0x0049    WIN_YSIZE_H        RW    Window Y size, high byte
+        0x004A    WIN_YSIZE_L        RW    Window Y size, low byte
+        0x004B    DAC_GFID           RW    DAC GFID analog tuning
+        0x004C    DAC_GSK_H          RW    DAC GSK, high byte
+        0x004D    DAC_GSK_L          RW    DAC GSK, low byte
+        0x004F    INT_TIME_H         RW    Integration time, high byte
+        0x0050    INT_TIME_L         RW    Integration time, low byte
+        0x0056    USER_INTERFRAME    RW    User interframe period
+        0x005C    CONFIG_B           RW    [7] I2C_DIFF_EN, [3] WINDOW,
+                                           [0] START_SEQ
+        0x0062    USER_INTERLINE     RW    User interline period
+        0x0063    STATUS             RO    [3] BAD_XY_PROG, [2] BAD_SIZE_PROG,
+                                           [1] ROIC_INIT_DONE, [0] SEQ_STATUS
+        0x00F6    ROIC_REV           RO    ROIC silicon revision
+        0x00F7    INTEGRITY_0        RO    Expected: 0x55
+        0x00F8    INTEGRITY_1        RO    Expected: 0xC6
+        0x00F9    INTEGRITY_2        RO    Expected: 0xCA
+
+    8.6 14-bit to YUY2 Packing:
+
+        The ATTO640D-04 outputs 14-bit pixels. For UVC/YUY2 transport:
+          - Each 14-bit pixel is right-shifted by 6 to yield an 8-bit Y value
+          - U and V chrominance are set to 0x80 (neutral) for grayscale
+          - Two pixels become one YUY2 macropixel: [Y0, 0x80, Y1, 0x80]
+          - Frame size in YUY2: 640 * 480 * 2 = 614400 bytes
+
+    8.7 TODOs (pending hardware validation):
+
+          - Verify I2C address selection based on hardware SADDR pin
+          - Validate NRST GPIO control sequence on target hardware
+          - Tune ADC calibration timing for production units
+          - Validate 14-bit to YUY2 packing with actual thermal data
+          - Verify GPIF II state machine timing with ATTO640D-04 signals
+          - Characterize optimal integration time defaults
 []
 

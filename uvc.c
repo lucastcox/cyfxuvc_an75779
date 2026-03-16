@@ -1618,6 +1618,7 @@ UVCHandleVideoStreamingRqts (
                         {
 
                         	switch (glCommitCtrl[3]) {
+#ifndef SENSOR_ATTO640D04
                         	case 2:
                             	SensorScaling_288_288_120fps ();
                         		SensorSetRoi(1);
@@ -1625,6 +1626,11 @@ UVCHandleVideoStreamingRqts (
                         	default:
                         		SensorScaling_608_608_30fps ();
                         		SensorSetRoi(0);
+#else
+                        	default:
+                        		/* ATTO640D-04: single mode 640x480 @ 60fps */
+                        		SensorSetRoi(0);
+#endif
                         	}
 
 #ifdef FRAME_TIMER_ENABLE
@@ -1635,8 +1641,13 @@ UVCHandleVideoStreamingRqts (
                         }
                         else
                         {
+#ifndef SENSOR_ATTO640D04
                           // FIXME: should the image be different over USB2.0?
                         	SensorScaling_608_608_30fps ();
+#else
+                        	/* ATTO640D-04: single mode 640x480 @ 60fps */
+                        	SensorSetRoi(0);
+#endif
 #ifdef FRAME_TIMER_ENABLE
                             /* We are using frame timer value of 400ms as the frame time is 66ms.
                              * Having more margin so that DMA reset doen't happen every now and then */

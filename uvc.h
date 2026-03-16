@@ -282,6 +282,30 @@
 
 #define PYTHON480_BM_CONTROLS         0x08,0x02,0x00
 
+/* ---------------------------------------------------------------------------
+ * ATTO640D-04 Video Format Definitions
+ *
+ * The ATTO640D-04 outputs 640x480 @ 60fps with 14-bit monochrome pixels.
+ *
+ * 14-bit to YUY2 packing policy:
+ *   Each 14-bit thermal pixel (from bus B13..B0) is right-shifted by 6 bits
+ *   to produce an 8-bit luminance (Y) value. Chrominance (U, V) is set to
+ *   0x80 (neutral) for grayscale representation in YUY2 format.
+ *
+ *   Two consecutive pixels produce one YUY2 macropixel (4 bytes):
+ *     [Y0, 0x80, Y1, 0x80]
+ *
+ *   Frame size in YUY2 = 640 * 480 * 2 = 614400 bytes (0x00096000)
+ * -------------------------------------------------------------------------*/
+#define ATTO640D04_X_LENGTH            0x80, 0x02  /* 640 pixels (little-endian) */
+#define ATTO640D04_Y_LENGTH            0xE0, 0x01  /* 480 pixels (little-endian) */
+#define ATTO640D04_FRAMESIZE_BYTES     0x00, 0x60, 0x09, 0x00  /* 614400 bytes */
+
+/* Bit rate: 614400 bytes/frame * 60 fps * 8 bits = 294912000 bps = 0x1194_0000 */
+#define ATTO640D04_BITRATE             0x00, 0x00, 0x94, 0x11
+/* Frame interval at 60 fps in 100ns units: 1/60 = 16666.67 us = 166667 * 100ns = 0x00028B0B */
+#define ATTO640D04_INTERVAL_60FPS      0x0B, 0x8B, 0x02, 0x00
+
 #ifdef PLL_BYPASS
 
 #define PYTHON480_BITRATE_120FPS           0x00, 0x00, 0x7E, 0x09  //0x00, 0x00, 0x7E, 0x09
