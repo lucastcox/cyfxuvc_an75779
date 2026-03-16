@@ -175,11 +175,11 @@ SensorSetGain (
 
 extern CyU3PReturnStatus_t
 SensorGetRoi (
-               uint8_t *translated_gain);
+               uint8_t *translated_roi);
 
 extern CyU3PReturnStatus_t
 SensorSetRoi (
-        uint8_t new_translated_gain);
+        uint8_t new_translated_roi);
 
 #ifdef SENSOR_ATTO640D04
 /* ---------------------------------------------------------------------------
