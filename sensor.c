@@ -138,6 +138,30 @@ SensorSetRoi (uint8_t new_translated_roi)
     return CY_U3P_SUCCESS;
 }
 
+CyU3PReturnStatus_t
+SensorGetIntegrationTime (uint16_t *time_val)
+{
+    return Atto640d04_GetIntegrationTime (time_val);
+}
+
+CyU3PReturnStatus_t
+SensorSetIntegrationTime (uint16_t time_val)
+{
+    return Atto640d04_SetIntegrationTime (time_val);
+}
+
+CyU3PReturnStatus_t
+SensorGetFlip (CyBool_t *flipH, CyBool_t *flipV)
+{
+    return Atto640d04_GetFlip (flipH, flipV);
+}
+
+CyU3PReturnStatus_t
+SensorSetFlip (CyBool_t flipH, CyBool_t flipV)
+{
+    return Atto640d04_SetFlip (flipH, flipV);
+}
+
 #else /* Default: EV76C541 (Python 480) */
 
 #define CONFIRM_TRIES      5

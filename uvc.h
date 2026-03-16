@@ -283,6 +283,44 @@
 #define PYTHON480_BM_CONTROLS         0x08,0x02,0x00
 
 /* ---------------------------------------------------------------------------
+ * ATTO640D-04 UVC Control Bitmaps
+ *
+ * Processing Unit bmControls (3 bytes, little-endian bitmap):
+ *   D0:  Brightness         — mapped to integration time (16-bit, 0–0xFFFF)
+ *   D3:  Saturation         — back-channel communication (existing, kept)
+ *   D9:  Gain               — sensor gain (5-bit, 0–31)
+ *
+ *   Byte 0: D0=1, D3=1  → 0x09
+ *   Byte 1: D9=1         → 0x02
+ *   Byte 2: 0            → 0x00
+ *
+ * Camera Terminal bmControls (3 bytes, little-endian bitmap):
+ *   D3:  Exposure Time (Absolute)  — mapped to integration time (16-bit)
+ *
+ *   Byte 0: D3=1         → 0x08
+ *   Byte 1: 0            → 0x00
+ *   Byte 2: 0            → 0x00
+ * -------------------------------------------------------------------------*/
+#define ATTO640D04_PU_BM_CONTROLS     0x09,0x02,0x00
+#define ATTO640D04_CT_BM_CONTROLS     0x08,0x00,0x00
+
+/* ATTO640D-04 integration time limits for UVC Exposure Time Absolute control.
+ * The integration time register is 16-bit. Units are sensor-specific.
+ */
+#define ATTO640D04_INT_TIME_MIN       0x0001
+#define ATTO640D04_INT_TIME_MAX       0xFFFF
+#define ATTO640D04_INT_TIME_RES       0x0001
+#define ATTO640D04_INT_TIME_DEF       0x0100  /* Default set during startup */
+
+/* ATTO640D-04 gain limits for UVC Gain control.
+ * The gain register is 5-bit (bits [4:0] of GAIN_IMAGE register 0x0040).
+ */
+#define ATTO640D04_GAIN_MIN           0x00
+#define ATTO640D04_GAIN_MAX           0x1F
+#define ATTO640D04_GAIN_RES           0x01
+#define ATTO640D04_GAIN_DEF           0x00
+
+/* ---------------------------------------------------------------------------
  * ATTO640D-04 Video Format Definitions
  *
  * The ATTO640D-04 outputs 640x480 @ 60fps with 14-bit monochrome pixels.

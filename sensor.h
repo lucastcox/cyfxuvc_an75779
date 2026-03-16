@@ -181,6 +181,51 @@ extern CyU3PReturnStatus_t
 SensorSetRoi (
         uint8_t new_translated_gain);
 
+#ifdef SENSOR_ATTO640D04
+/* ---------------------------------------------------------------------------
+ * ATTO640D-04 Additional Sensor API
+ *
+ * These functions expose ATTO640D-04 specific settings (integration time,
+ * image flip) through a common interface so uvc.c can wire them to UVC
+ * controls.
+ * -------------------------------------------------------------------------*/
+
+/* Function    : SensorGetIntegrationTime
+   Description : Get the current integration time from the ATTO640D-04.
+   Parameters  : uint16_t *time_val — receives the 16-bit integration time value.
+ */
+extern CyU3PReturnStatus_t
+SensorGetIntegrationTime (
+        uint16_t *time_val);
+
+/* Function    : SensorSetIntegrationTime
+   Description : Set the integration time on the ATTO640D-04.
+   Parameters  : uint16_t time_val — 16-bit integration time value.
+ */
+extern CyU3PReturnStatus_t
+SensorSetIntegrationTime (
+        uint16_t time_val);
+
+/* Function    : SensorGetFlip
+   Description : Get the current horizontal and vertical flip state.
+   Parameters  : CyBool_t *flipH, CyBool_t *flipV
+ */
+extern CyU3PReturnStatus_t
+SensorGetFlip (
+        CyBool_t *flipH,
+        CyBool_t *flipV);
+
+/* Function    : SensorSetFlip
+   Description : Set horizontal and vertical flip.
+   Parameters  : CyBool_t flipH, CyBool_t flipV
+ */
+extern CyU3PReturnStatus_t
+SensorSetFlip (
+        CyBool_t flipH,
+        CyBool_t flipV);
+
+#endif /* SENSOR_ATTO640D04 */
+
 #ifndef SENSOR_ATTO640D04
 /* Python 480 specific scaling functions */
 

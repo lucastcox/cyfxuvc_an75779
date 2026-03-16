@@ -30,6 +30,7 @@
  */
 
 #include "uvc.h"
+#include "sensor.h"
 #include "camera_ptzcontrol.h"
 // #define USE_YUY2_FORMAT
 
@@ -151,7 +152,11 @@ const uint8_t CyFxUSBFSConfigDscr[] =
         0x00,0x00,                      /* No optical zoom supported */
 #endif
         0x03,                           /* Size of controls field for this terminal : 3 bytes */
+#ifdef SENSOR_ATTO640D04
+        ATTO640D04_CT_BM_CONTROLS,      /* bmControls: Exposure Time Absolute supported */
+#else
         0x00,0x00,0x00,                 /* bmControls field of camera terminal: No controls supported */
+#endif
 
         /* Processing Unit Descriptor */
         0x0D,                           /* Descriptor size */
@@ -161,7 +166,11 @@ const uint8_t CyFxUSBFSConfigDscr[] =
         0x01,                           /* Source ID : 1 : Conencted to input terminal */
         0x00,0x40,                      /* Digital multiplier */
         0x03,                           /* Size of controls field for this terminal : 3 bytes */
-        0x00,0x00,0x00,                 /* bmControls field of processing unit: Brightness control supported */
+#ifdef SENSOR_ATTO640D04
+        ATTO640D04_PU_BM_CONTROLS,      /* bmControls: Brightness, Saturation, Gain */
+#else
+        0x00,0x00,0x00,                 /* bmControls field of processing unit: No controls for FS */
+#endif
         0x00,                           /* String desc index : Not used */
         0x00,                           /* Analog Video Standards Supported: None */
 
@@ -349,10 +358,12 @@ const uint8_t CyFxUSBHSConfigDscr[] =
                                          * D19: Focus, Simple
                                          * D20: Window
                                          * D21: Region of Interest
-                                         * D22 – D23: Reserved, set to zero
+                                         * D22 ï¿½ D23: Reserved, set to zero
                                          */
 #ifdef UVC_PTZ_SUPPORT
         0x00,0x0A,0x00,                 /* bmControls field of camera terminal: PTZ supported */
+#elif defined(SENSOR_ATTO640D04)
+        ATTO640D04_CT_BM_CONTROLS,      /* bmControls: Exposure Time Absolute supported */
 #else
         0x00,0x00,0x00,                 /* bmControls field of camera terminal: No controls supported */
 #endif
@@ -390,14 +401,19 @@ const uint8_t CyFxUSBHSConfigDscr[] =
                                          * D16: Analog Video Standard
                                          * D17: Analog Video Lock Status
                                          * D18: Contrast, Auto
-                                         * D19 – D23: Reserved. Set to zero.
+                                         * D19 - D23: Reserved. Set to zero.
                                          */
+#ifdef SENSOR_ATTO640D04
+        ATTO640D04_PU_BM_CONTROLS,      /* bmControls: Brightness (integration time),
+                                         * Saturation (back-channel), Gain supported */
+#else
         PYTHON480_BM_CONTROLS,                 /* bmControls field of processing unit:
                          * Brightness control supported: changes exposure
                          * Saturation control supported: other commands to DAQ board
                          * Gain control supported: analog gain to pixel readings
                          * Changed by GL
                          */
+#endif
         0x00,                           /* String desc index : Not used */
 #ifndef FX3_UVC_1_0_SUPPORT
         0x00,                           /* Analog Video Standards Supported: None */
@@ -717,10 +733,12 @@ const uint8_t CyFxUSBSSConfigDscr[] =
                                          * D19: Focus, Simple
                                          * D20: Window
                                          * D21: Region of Interest
-                                         * D22 – D23: Reserved, set to zero
+                                         * D22 ï¿½ D23: Reserved, set to zero
                                          */
 #ifdef UVC_PTZ_SUPPORT
         0x00,0x0A,0x00,                 /* bmControls field of camera terminal: PTZ supported */
+#elif defined(SENSOR_ATTO640D04)
+        ATTO640D04_CT_BM_CONTROLS,      /* bmControls: Exposure Time Absolute supported */
 #else
         0x00,0x00,0x00,                 /* bmControls field of camera terminal: No controls supported */
 #endif
@@ -737,6 +755,10 @@ const uint8_t CyFxUSBSSConfigDscr[] =
         0x01,                           /* Source ID : 1 : Connected to input terminal */
         0x00,0x40,                      /* Digital multiplier */
         0x03,                           /* Size of controls field for this terminal : 3 bytes */
+#ifdef SENSOR_ATTO640D04
+        ATTO640D04_PU_BM_CONTROLS,      /* bmControls: Brightness (integration time),
+                                         * Saturation (back-channel), Gain supported */
+#else
         PYTHON480_BM_CONTROLS,          /* bmControls field of processing unit:
                      * Brightness control supported: changes exposure
                      * Hue control supported: changes LED brightness
@@ -744,6 +766,7 @@ const uint8_t CyFxUSBSSConfigDscr[] =
                      * Gain control supported: analog gain to pixel readings
                      * Changed by GL
                      */
+#endif
         0x00,                           /* String desc index : Not used */
 #ifndef FX3_UVC_1_0_SUPPORT
         0x00,                           /* Analog Video Standards Supported: None */
