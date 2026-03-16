@@ -114,7 +114,8 @@ SensorSetGain (uint8_t new_translated_gain)
 CyU3PReturnStatus_t
 SensorGetRoi (uint8_t *translated_roi)
 {
-    /* For ATTO640D-04, ROI is window-based. Return 0 for full-frame. */
+    /* For ATTO640D-04, ROI is window-based.
+     * Sets *translated_roi to 0 for full-frame, 1 for sub-window. */
     uint16_t xstart = 0, ystart = 0, xsize = 0, ysize = 0;
     CyU3PReturnStatus_t apiRetStatus;
 
