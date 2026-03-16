@@ -20,11 +20,16 @@
  ## ===========================
 */
 
-/* This file implements the I2C based driver for the EV76C541 image sensor used
-   in the FX3 HD 720p camera kit.
+/* This file implements the I2C based driver for the image sensor used
+   in the FX3 UVC camera pipeline.
 
-   Please refer to the Aptina EV76C541 sensor datasheet for the details of the
-   I2C commands used to configure the sensor.
+   When SENSOR_ATTO640D04 is defined (in sensor.h or via -D flag), this file
+   provides wrapper functions that delegate to the ATTO640D-04 driver
+   (atto640d04.c). Otherwise, it provides the original EV76C541 (Python 480)
+   implementation.
+
+   Please refer to the relevant sensor datasheet for details of the I2C
+   commands used to configure the sensor.
  */
 
 #include <cyu3system.h>
@@ -40,6 +45,124 @@
 #include "util.h"
 #include "appi2c.h"
 #include "auxiliary.h"
+
+#ifdef SENSOR_ATTO640D04
+/* ============================================================================
+ * ATTO640D-04 Sensor Backend
+ *
+ * These wrapper functions provide the common Sensor* API interface expected
+ * by uvc.c, delegating to the ATTO640D-04 driver in atto640d04.c.
+ * ==========================================================================*/
+
+CyU3PReturnStatus_t
+SensorIsOn (
+            CyBool_t *isOn)
+{
+    /* For the ATTO640D-04, check if the sequencer is running */
+    CyU3PReturnStatus_t apiRetStatus;
+    uint8_t status = 0;
+
+    apiRetStatus = Atto640d04_GetStatus (&status);
+    if (apiRetStatus == CY_U3P_SUCCESS) {
+        *isOn = (status & ATTO_STATUS_SEQ_STATUS_bm) ? CyTrue : CyFalse;
+    }
+    return apiRetStatus;
+}
+
+CyU3PReturnStatus_t
+SensorInit (void)
+{
+    return Atto640d04_Init ();
+}
+
+CyU3PReturnStatus_t
+SensorStart (void)
+{
+    return Atto640d04_Start ();
+}
+
+CyU3PReturnStatus_t
+SensorStop (void)
+{
+    return Atto640d04_Stop ();
+}
+
+CyU3PReturnStatus_t
+SensorDisable (void)
+{
+    return Atto640d04_Stop ();
+}
+
+CyU3PReturnStatus_t
+SensorI2CBusTest (CyBool_t *success)
+{
+    return Atto640d04_CheckIntegrity (success);
+}
+
+CyU3PReturnStatus_t
+SensorGetGain (uint8_t *translated_gain)
+{
+    return Atto640d04_GetGain (translated_gain);
+}
+
+CyU3PReturnStatus_t
+SensorSetGain (uint8_t new_translated_gain)
+{
+    return Atto640d04_SetGain (new_translated_gain);
+}
+
+CyU3PReturnStatus_t
+SensorGetRoi (uint8_t *translated_roi)
+{
+    /* For ATTO640D-04, ROI is window-based.
+     * Sets *translated_roi to 0 for full-frame, 1 for sub-window. */
+    uint16_t xstart = 0, ystart = 0, xsize = 0, ysize = 0;
+    CyU3PReturnStatus_t apiRetStatus;
+
+    apiRetStatus = Atto640d04_GetWindow (&xstart, &ystart, &xsize, &ysize);
+    if (apiRetStatus == CY_U3P_SUCCESS) {
+        *translated_roi = (xsize == ATTO_WIDTH && ysize == ATTO_HEIGHT &&
+                           xstart == 0 && ystart == 0) ? 0 : 1;
+    }
+    return apiRetStatus;
+}
+
+CyU3PReturnStatus_t
+SensorSetRoi (uint8_t new_translated_roi)
+{
+    /* For ATTO640D-04, ROI 0 = full-frame 640x480 */
+    if (new_translated_roi == 0) {
+        return Atto640d04_SetWindow (0, 0, ATTO_WIDTH, ATTO_HEIGHT);
+    }
+    /* ROI 1 or other: keep current window settings */
+    return CY_U3P_SUCCESS;
+}
+
+CyU3PReturnStatus_t
+SensorGetIntegrationTime (uint16_t *time_val)
+{
+    return Atto640d04_GetIntegrationTime (time_val);
+}
+
+CyU3PReturnStatus_t
+SensorSetIntegrationTime (uint16_t time_val)
+{
+    return Atto640d04_SetIntegrationTime (time_val);
+}
+
+CyU3PReturnStatus_t
+SensorGetFlip (CyBool_t *flipH, CyBool_t *flipV)
+{
+    return Atto640d04_GetFlip (flipH, flipV);
+}
+
+CyU3PReturnStatus_t
+SensorSetFlip (CyBool_t flipH, CyBool_t flipV)
+{
+    return Atto640d04_SetFlip (flipH, flipV);
+}
+
+#else /* Default: EV76C541 (Python 480) */
 
 #define CONFIRM_TRIES      5
 
@@ -518,3 +641,5 @@ SensorSetRoi (
 
     return apiRetStatus;
 }
+
+#endif /* SENSOR_ATTO640D04 */

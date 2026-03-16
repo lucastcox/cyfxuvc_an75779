@@ -1172,6 +1172,68 @@ UVCHandleProcessingUnitRqts (
 
     switch (wValue)
     {
+#ifdef SENSOR_ATTO640D04
+    case CY_FX_UVC_PU_BRIGHTNESS_CONTROL:
+      /* ATTO640D-04: Brightness control mapped to integration time (16-bit).
+       * This allows UVC hosts to adjust thermal sensor exposure via the
+       * standard Brightness slider available in most video capture apps.
+       */
+      switch (bRequest)
+      {
+        case CY_FX_USB_UVC_GET_LEN_REQ:
+            glEp0Buffer[0] = 2;  /* 16-bit value */
+            glEp0Buffer[1] = 0;
+            CyU3PUsbSendEP0Data (2, (uint8_t *)glEp0Buffer);
+            break;
+        case CY_FX_USB_UVC_GET_CUR_REQ:
+          {
+            uint16_t intTime = ATTO640D04_INT_TIME_DEF;
+            apiRetStatus = SensorGetIntegrationTime (&intTime);
+            glEp0Buffer[0] = CY_U3P_GET_LSB (intTime);
+            glEp0Buffer[1] = CY_U3P_GET_MSB (intTime);
+            CyU3PUsbSendEP0Data (2, (uint8_t *)glEp0Buffer);
+          }
+          break;
+        case CY_FX_USB_UVC_GET_MIN_REQ:
+          glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_MIN);
+          glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_MIN);
+          CyU3PUsbSendEP0Data (2, (uint8_t *)glEp0Buffer);
+          break;
+        case CY_FX_USB_UVC_GET_MAX_REQ:
+          glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_MAX);
+          glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_MAX);
+          CyU3PUsbSendEP0Data (2, (uint8_t *)glEp0Buffer);
+          break;
+        case CY_FX_USB_UVC_GET_RES_REQ:
+          glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_RES);
+          glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_RES);
+          CyU3PUsbSendEP0Data (2, (uint8_t *)glEp0Buffer);
+          break;
+        case CY_FX_USB_UVC_GET_INFO_REQ:
+          glEp0Buffer[0] = 3;  /* GET and SET supported */
+          CyU3PUsbSendEP0Data (1, (uint8_t *)glEp0Buffer);
+          break;
+        case CY_FX_USB_UVC_GET_DEF_REQ:
+          glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_DEF);
+          glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_DEF);
+          CyU3PUsbSendEP0Data (2, (uint8_t *)glEp0Buffer);
+          break;
+        case CY_FX_USB_UVC_SET_CUR_REQ:
+          apiRetStatus = CyU3PUsbGetEP0Data (CY_FX_UVC_MAX_PROBE_SETTING_ALIGNED,
+              glEp0Buffer, &readCount);
+          if (apiRetStatus == CY_U3P_SUCCESS)
+          {
+            uint16_t newIntTime = (uint16_t)glEp0Buffer[0] | ((uint16_t)glEp0Buffer[1] << 8);
+            SensorSetIntegrationTime (newIntTime);
+          }
+          break;
+        default:
+          CyU3PUsbStall (0, CyTrue, CyFalse);
+          break;
+      }
+      break;
+#endif /* SENSOR_ATTO640D04 */
+
     case CY_FX_UVC_PU_GAIN_CONTROL: // 1024
       switch (bRequest)
       {
@@ -1182,16 +1244,28 @@ UVCHandleProcessingUnitRqts (
         case CY_FX_USB_UVC_GET_CUR_REQ: /* Current gain value. */
           apiRetStatus = SensorGetGain (glEp0Buffer);
           if (apiRetStatus != CY_U3P_SUCCESS) {
+#ifdef SENSOR_ATTO640D04
+            glEp0Buffer[0] = ATTO640D04_GAIN_DEF;
+#else
             glEp0Buffer[0] = 1;
+#endif
           }
           CyU3PUsbSendEP0Data (1, (uint8_t *)glEp0Buffer);
           break;
-        case CY_FX_USB_UVC_GET_MIN_REQ: /* Minimum gain = 1. */
+        case CY_FX_USB_UVC_GET_MIN_REQ:
+#ifdef SENSOR_ATTO640D04
+          glEp0Buffer[0] = ATTO640D04_GAIN_MIN;
+#else
           glEp0Buffer[0] = 1;
+#endif
           CyU3PUsbSendEP0Data (1, (uint8_t *)glEp0Buffer);
           break;
-        case CY_FX_USB_UVC_GET_MAX_REQ: /* Maximum gain = 3. */
+        case CY_FX_USB_UVC_GET_MAX_REQ:
+#ifdef SENSOR_ATTO640D04
+          glEp0Buffer[0] = ATTO640D04_GAIN_MAX;
+#else
           glEp0Buffer[0] = 3;
+#endif
           CyU3PUsbSendEP0Data (1, (uint8_t *)glEp0Buffer);
           break;
         case CY_FX_USB_UVC_GET_RES_REQ: /* Resolution = 1. */
@@ -1202,8 +1276,12 @@ UVCHandleProcessingUnitRqts (
           glEp0Buffer[0] = 3;
           CyU3PUsbSendEP0Data (1, (uint8_t *)glEp0Buffer);
           break;
-        case CY_FX_USB_UVC_GET_DEF_REQ: /* Default gain value = 0. */
+        case CY_FX_USB_UVC_GET_DEF_REQ:
+#ifdef SENSOR_ATTO640D04
+          glEp0Buffer[0] = ATTO640D04_GAIN_DEF;
+#else
           glEp0Buffer[0] = 0;
+#endif
           CyU3PUsbSendEP0Data (1, (uint8_t *)glEp0Buffer);
           break;
         case CY_FX_USB_UVC_SET_CUR_REQ: /* Update gain value. */
@@ -1265,10 +1343,6 @@ UVCHandleProcessingUnitRqts (
       }
       break;
         default:
-            /*
-             * Only the brightness control is supported as of now. Add additional code here to support
-             * other controls.
-             */
             glUvcVcErrorCode = CY_FX_UVC_VC_ERROR_CODE_INVALID_CONTROL;
             CyU3PUsbStall (0, CyTrue, CyFalse);
             break;
@@ -1282,9 +1356,11 @@ static void
 UVCHandleCameraTerminalRqts (
         void)
 {
-#ifdef UVC_PTZ_SUPPORT
+#if defined(UVC_PTZ_SUPPORT) || defined(SENSOR_ATTO640D04)
     CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
     uint16_t readCount;
+#endif
+#ifdef UVC_PTZ_SUPPORT
     uint16_t zoomVal;
     int32_t  panVal, tiltVal;
     CyBool_t sendData = CyFalse;
@@ -1292,6 +1368,74 @@ UVCHandleCameraTerminalRqts (
 
     switch (wValue)
     {
+#ifdef SENSOR_ATTO640D04
+        case CY_FX_UVC_CT_EXPOSURE_TIME_ABSOLUTE_CONTROL:
+            /* ATTO640D-04: Exposure Time Absolute control mapped to integration time.
+             * UVC spec: 32-bit value in 100us units.
+             * We use the lower 16 bits as the raw sensor integration time register value.
+             */
+            switch (bRequest)
+            {
+                case CY_FX_USB_UVC_GET_INFO_REQ:
+                    glEp0Buffer[0] = 3;                /* Support GET/SET queries. */
+                    CyU3PUsbSendEP0Data (1, (uint8_t *)glEp0Buffer);
+                    break;
+                case CY_FX_USB_UVC_GET_CUR_REQ:
+                  {
+                    uint16_t intTime = ATTO640D04_INT_TIME_DEF;
+                    apiRetStatus = SensorGetIntegrationTime (&intTime);
+                    glEp0Buffer[0] = CY_U3P_GET_LSB (intTime);
+                    glEp0Buffer[1] = CY_U3P_GET_MSB (intTime);
+                    glEp0Buffer[2] = 0;
+                    glEp0Buffer[3] = 0;
+                    CyU3PUsbSendEP0Data (4, (uint8_t *)glEp0Buffer);
+                  }
+                  break;
+                case CY_FX_USB_UVC_GET_MIN_REQ:
+                    glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_MIN);
+                    glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_MIN);
+                    glEp0Buffer[2] = 0;
+                    glEp0Buffer[3] = 0;
+                    CyU3PUsbSendEP0Data (4, (uint8_t *)glEp0Buffer);
+                    break;
+                case CY_FX_USB_UVC_GET_MAX_REQ:
+                    glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_MAX);
+                    glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_MAX);
+                    glEp0Buffer[2] = 0;
+                    glEp0Buffer[3] = 0;
+                    CyU3PUsbSendEP0Data (4, (uint8_t *)glEp0Buffer);
+                    break;
+                case CY_FX_USB_UVC_GET_RES_REQ:
+                    glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_RES);
+                    glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_RES);
+                    glEp0Buffer[2] = 0;
+                    glEp0Buffer[3] = 0;
+                    CyU3PUsbSendEP0Data (4, (uint8_t *)glEp0Buffer);
+                    break;
+                case CY_FX_USB_UVC_GET_DEF_REQ:
+                    glEp0Buffer[0] = CY_U3P_GET_LSB (ATTO640D04_INT_TIME_DEF);
+                    glEp0Buffer[1] = CY_U3P_GET_MSB (ATTO640D04_INT_TIME_DEF);
+                    glEp0Buffer[2] = 0;
+                    glEp0Buffer[3] = 0;
+                    CyU3PUsbSendEP0Data (4, (uint8_t *)glEp0Buffer);
+                    break;
+                case CY_FX_USB_UVC_SET_CUR_REQ:
+                    apiRetStatus = CyU3PUsbGetEP0Data (CY_FX_UVC_MAX_PROBE_SETTING_ALIGNED,
+                            glEp0Buffer, &readCount);
+                    if (apiRetStatus == CY_U3P_SUCCESS)
+                    {
+                        uint16_t newIntTime = (uint16_t)glEp0Buffer[0] |
+                                              ((uint16_t)glEp0Buffer[1] << 8);
+                        SensorSetIntegrationTime (newIntTime);
+                    }
+                    break;
+                default:
+                    glUvcVcErrorCode = CY_FX_UVC_VC_ERROR_CODE_INVALID_REQUEST;
+                    CyU3PUsbStall (0, CyTrue, CyFalse);
+                    break;
+            }
+            break;
+#endif /* SENSOR_ATTO640D04 */
 #ifdef UVC_PTZ_SUPPORT
         case CY_FX_UVC_CT_ZOOM_ABSOLUTE_CONTROL:
             switch (bRequest)
@@ -1618,6 +1762,7 @@ UVCHandleVideoStreamingRqts (
                         {
 
                         	switch (glCommitCtrl[3]) {
+#ifndef SENSOR_ATTO640D04
                         	case 2:
                             	SensorScaling_288_288_120fps ();
                         		SensorSetRoi(1);
@@ -1625,6 +1770,11 @@ UVCHandleVideoStreamingRqts (
                         	default:
                         		SensorScaling_608_608_30fps ();
                         		SensorSetRoi(0);
+#else
+                        	default:
+                        		/* ATTO640D-04: single mode 640x480 @ 60fps */
+                        		SensorSetRoi(0);
+#endif
                         	}
 
 #ifdef FRAME_TIMER_ENABLE
@@ -1635,8 +1785,13 @@ UVCHandleVideoStreamingRqts (
                         }
                         else
                         {
+#ifndef SENSOR_ATTO640D04
                           // FIXME: should the image be different over USB2.0?
                         	SensorScaling_608_608_30fps ();
+#else
+                        	/* ATTO640D-04: single mode 640x480 @ 60fps */
+                        	SensorSetRoi(0);
+#endif
 #ifdef FRAME_TIMER_ENABLE
                             /* We are using frame timer value of 400ms as the frame time is 66ms.
                              * Having more margin so that DMA reset doen't happen every now and then */

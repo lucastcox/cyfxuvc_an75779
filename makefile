@@ -26,6 +26,7 @@ SOURCE= uvc.c 			\
 	camera_ptzcontrol.c	\
 	cyfxuvcdscr.c		\
 	sensor.c		\
+	atto640d04.c		\
 	cyfxtx.c
 
 ifeq ($(CYFXBUILD),arm)
